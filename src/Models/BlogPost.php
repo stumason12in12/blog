@@ -29,6 +29,17 @@ class BlogPost extends Model
         $excerpt = \Str::limit(strip_tags($content), 150);
         $reading_time = ceil(str_word_count(strip_tags($content)) / 200);
 
+        // check if the post already exists
+        if (static::where('slug', $slug)->exists()) {
+            // update the post
+            return static::where('slug', $slug)->update([
+                'title' => $title,
+                'content' => $content,
+                'excerpt' => $excerpt,
+                'reading_time' => $reading_time,
+            ]);
+        }
+
         return static::create([
             'title' => $title,
             'slug' => $slug,
