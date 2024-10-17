@@ -23,7 +23,7 @@ class BlogController extends Controller
 
     public function sync()
     {
-        $files = Storage::disk('blog')->files();
+        $files = Storage::disk(config('blog.storage_disk'))->files();
         
         $processedCount = 0;
         

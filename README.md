@@ -36,25 +36,13 @@ You can publish the config file with:
 php artisan vendor:publish --tag="blog-config"
 ```
 
-This is the contents of the published config file:
+## Routes
 
-```php
-return [
-];
-```
+/blog - index of blog posts.
+/blog/{slug} - view a single blog post.
+/blog-sync - get markdown files that don't have `draft` in their name and sync them with the database.
 
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag="blog-views"
-```
-
-## Usage
-
-```php
-$blog = new Stumason12in12\Blog();
-echo $blog->echoPhrase('Hello, Stumason12in12!');
-```
+Not sure what to do with views yet, so for now, the controller just expects them to exist... will update eventually when I know what I'm doing.
 
 ## Testing
 

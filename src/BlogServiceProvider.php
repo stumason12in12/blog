@@ -16,7 +16,7 @@ class BlogServiceProvider extends PackageServiceProvider
          * More info: https://github.com/spatie/laravel-package-tools
          */
         $package
-            ->name('Blog')
+            ->name('blog')
             ->hasConfigFile()
             ->hasRoute('web')
             ->hasMigration('create_blog_table')
