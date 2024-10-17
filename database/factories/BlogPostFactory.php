@@ -2,10 +2,9 @@
 
 namespace Database\Factories;
 
-use Stumason12in12\Blog\BlogPost;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-
+use Stumason12in12\Blog\BlogPost;
 
 class BlogPostFactory extends Factory
 {
@@ -14,6 +13,7 @@ class BlogPostFactory extends Factory
     public function definition()
     {
         $title = $this->faker->sentence;
+
         return [
             'title' => $title,
             'slug' => Str::slug($title),
