@@ -36,6 +36,52 @@ You can publish the config file with:
 php artisan vendor:publish --tag="blog-config"
 ```
 
+## Config
+
+```php
+<?php
+
+return [
+    'storage_disk' => 'blog',
+    'default_author' => 'Stu Mason',
+    'words_per_minute' => 200,
+];
+``` 
+
+and then in file system, add the blog disk:
+
+```php
+    'disks' => [
+
+        'blog' => [
+            'driver' => 'local',
+            'root' => storage_path('app/blog'),
+        ],
+
+        'local' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+```
+
+## Creating posts
+
+update Storage/app/.gitignore to include blog:
+
+```bash
+*
+!private/
+!public/
+!blog/
+!blog/*
+!.gitignore
+```
+
+Create markdown files in the blog directory:
+
+`./storage/app/blog` - markdown files go here.
+
+If you don't want the file being synced with the database, add `draft` to the filename.
+
 ## Routes
 
 /blog - index of blog posts.
