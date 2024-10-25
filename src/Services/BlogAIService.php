@@ -2,13 +2,11 @@
 
 namespace Stumason12in12\Blog\Services;
 
-use OpenAI;
 use Illuminate\Support\Str;
-use InvalidArgumentException;
+use OpenAI;
 
 class BlogAIService
 {
-
     protected $client;
 
     public function __construct()
@@ -50,11 +48,11 @@ EOT;
                     ['role' => 'system', 'content' => $prompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
-                'temperature' => 0.7, 
+                'temperature' => 0.7,
             ]);
 
             $result = json_decode($response->choices[0]->message->content, true);
-            
+
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new \RuntimeException('Failed to parse OpenAI response as JSON');
             }
@@ -83,7 +81,7 @@ EOT;
 
         } catch (\Exception $e) {
             // Log the error if you have logging configured
-            \Log::error('AI Enhancement failed: ' . $e->getMessage(), [
+            \Log::error('AI Enhancement failed: '.$e->getMessage(), [
                 'content_preview' => Str::limit($content, 100),
                 'error' => $e->getMessage(),
             ]);

@@ -4,9 +4,9 @@ namespace Stumason12in12\Blog\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 use Spatie\LaravelMarkdown\MarkdownRenderer;
 use Stumason12in12\Blog\Services\BlogAIService;
 
@@ -15,14 +15,14 @@ class BlogPost extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title', 
-        'slug', 
-        'content', 
-        'author', 
-        'category', 
-        'excerpt', 
+        'title',
+        'slug',
+        'content',
+        'author',
+        'category',
+        'excerpt',
         'reading_time',
-        'ai_processed'
+        'ai_processed',
     ];
 
     protected $casts = [
@@ -35,9 +35,6 @@ class BlogPost extends Model
 
     /**
      * Create or update a blog post from a markdown file
-     *
-     * @param string $filename
-     * @return static
      */
     public static function createFromFile(string $filename): static
     {
@@ -47,7 +44,7 @@ class BlogPost extends Model
             $slug = Str::slug($originalTitle);
 
             $existingPost = static::where('slug', $slug)->first();
-            
+
             if ($existingPost) {
                 return static::updateExistingPost($existingPost, $content);
             }
@@ -56,7 +53,7 @@ class BlogPost extends Model
         } catch (\Exception $e) {
             Log::error('Failed to create/update blog post', [
                 'filename' => $filename,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -65,18 +62,16 @@ class BlogPost extends Model
     /**
      * Update an existing blog post
      *
-     * @param static $post
-     * @param string $content
-     * @return static
+     * @param  static  $post
      */
     protected static function updateExistingPost(self $post, string $content): static
     {
         // If not AI processed yet, enhance it
-        if (!$post->ai_processed) {
+        if (! $post->ai_processed) {
             try {
                 $aiService = app(BlogAIService::class);
                 $enhanced = $aiService->enhancePost($content)->toArray();
-                
+
                 $post->update([
                     'title' => $enhanced['title'],
                     'content' => $enhanced['enhanced_content'],
@@ -88,34 +83,30 @@ class BlogPost extends Model
             } catch (\Exception $e) {
                 Log::warning('AI processing failed, updating with original content', [
                     'post_id' => $post->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
-                
+
                 // Fallback to basic update if AI processing fails
                 $post->update([
                     'content' => $content,
                     'reading_time' => static::calculateReadingTime($content),
                 ]);
             }
-            
+
             return $post;
         }
-        
+
         // If already AI processed, just update content
         $post->update([
             'content' => $content,
             'reading_time' => static::calculateReadingTime($content),
         ]);
-        
+
         return $post;
     }
 
     /**
      * Create a new blog post
-     *
-     * @param string $slug
-     * @param string $content
-     * @return static
      */
     protected static function createNewPost(string $slug, string $content): static
     {
@@ -136,7 +127,7 @@ class BlogPost extends Model
         } catch (\Exception $e) {
             Log::warning('AI processing failed for new post, creating with defaults', [
                 'slug' => $slug,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Fallback to creating post without AI enhancement
@@ -155,9 +146,6 @@ class BlogPost extends Model
 
     /**
      * Calculate reading time in minutes
-     *
-     * @param string $content
-     * @return int
      */
     protected static function calculateReadingTime(string $content): int
     {
@@ -166,8 +154,6 @@ class BlogPost extends Model
 
     /**
      * Get rendered HTML content
-     *
-     * @return string
      */
     public function getRenderedContentAttribute(): string
     {

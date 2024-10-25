@@ -2,22 +2,24 @@
 
 namespace Stumason12in12\Blog\Services;
 
-use OpenAI\Client;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class BlogAIEnhancement
 {
     public string $title;
+
     public string $category;
+
     public string $excerpt;
+
     public string $enhanced_content;
 
     public function __construct(array $data)
     {
         // Validate required fields
         foreach (['title', 'category', 'excerpt', 'enhanced_content'] as $field) {
-            if (!isset($data[$field]) || !is_string($data[$field])) {
+            if (! isset($data[$field]) || ! is_string($data[$field])) {
                 throw new InvalidArgumentException("Missing or invalid field: {$field}");
             }
         }
