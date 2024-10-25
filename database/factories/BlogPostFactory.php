@@ -22,6 +22,7 @@ class BlogPostFactory extends Factory
             'category' => $this->faker->word,
             'excerpt' => $this->faker->sentence,
             'reading_time' => $this->faker->numberBetween(1, 10),
+            'ai_processed' => $this->faker->boolean,
         ];
     }
 }

@@ -19,7 +19,7 @@ class BlogServiceProvider extends PackageServiceProvider
             ->name('blog')
             ->hasConfigFile()
             ->hasRoute('web')
-            ->hasMigration('create_blog_table')
+            ->hasMigrations(['create_blog_table', 'update_blog_table'])
             ->hasCommand(BlogCommand::class);
     }
 }

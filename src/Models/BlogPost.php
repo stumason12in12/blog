@@ -5,53 +5,171 @@ namespace Stumason12in12\Blog\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 use Spatie\LaravelMarkdown\MarkdownRenderer;
+use Stumason12in12\Blog\Services\BlogAIService;
 
 class BlogPost extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'slug', 'content', 'author', 'category', 'excerpt', 'reading_time'];
+    protected $fillable = [
+        'title', 
+        'slug', 
+        'content', 
+        'author', 
+        'category', 
+        'excerpt', 
+        'reading_time',
+        'ai_processed'
+    ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'ai_processed' => 'boolean',
     ];
 
     protected $appends = ['rendered_content'];
 
-    public static function createFromFile($filename)
+    /**
+     * Create or update a blog post from a markdown file
+     *
+     * @param string $filename
+     * @return static
+     */
+    public static function createFromFile(string $filename): static
     {
-        $content = Storage::disk('blog')->get($filename);
-        $title = pathinfo($filename, PATHINFO_FILENAME);
-        $slug = \Str::slug($title);
+        try {
+            $content = Storage::disk('blog')->get($filename);
+            $originalTitle = pathinfo($filename, PATHINFO_FILENAME);
+            $slug = Str::slug($originalTitle);
 
-        $excerpt = \Str::limit(strip_tags($content), 150);
-        $reading_time = ceil(str_word_count(strip_tags($content)) / 200);
+            $existingPost = static::where('slug', $slug)->first();
+            
+            if ($existingPost) {
+                return static::updateExistingPost($existingPost, $content);
+            }
 
-        // check if the post already exists
-        if (static::where('slug', $slug)->exists()) {
-            // update the post
-            return static::where('slug', $slug)->update([
-                'title' => $title,
-                'content' => $content,
-                'excerpt' => $excerpt,
-                'reading_time' => $reading_time,
+            return static::createNewPost($slug, $content);
+        } catch (\Exception $e) {
+            Log::error('Failed to create/update blog post', [
+                'filename' => $filename,
+                'error' => $e->getMessage()
             ]);
+            throw $e;
         }
-
-        return static::create([
-            'title' => $title,
-            'slug' => $slug,
-            'content' => $content,
-            'author' => 'Stu Mason',
-            'category' => 'Uncategorized',
-            'excerpt' => $excerpt,
-            'reading_time' => $reading_time,
-        ]);
     }
 
-    public function getRenderedContentAttribute()
+    /**
+     * Update an existing blog post
+     *
+     * @param static $post
+     * @param string $content
+     * @return static
+     */
+    protected static function updateExistingPost(self $post, string $content): static
+    {
+        // If not AI processed yet, enhance it
+        if (!$post->ai_processed) {
+            try {
+                $aiService = app(BlogAIService::class);
+                $enhanced = $aiService->enhancePost($content)->toArray();
+                
+                $post->update([
+                    'title' => $enhanced['title'],
+                    'content' => $enhanced['enhanced_content'],
+                    'category' => $enhanced['category'],
+                    'excerpt' => $enhanced['excerpt'],
+                    'reading_time' => static::calculateReadingTime($enhanced['enhanced_content']),
+                    'ai_processed' => true,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('AI processing failed, updating with original content', [
+                    'post_id' => $post->id,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Fallback to basic update if AI processing fails
+                $post->update([
+                    'content' => $content,
+                    'reading_time' => static::calculateReadingTime($content),
+                ]);
+            }
+            
+            return $post;
+        }
+        
+        // If already AI processed, just update content
+        $post->update([
+            'content' => $content,
+            'reading_time' => static::calculateReadingTime($content),
+        ]);
+        
+        return $post;
+    }
+
+    /**
+     * Create a new blog post
+     *
+     * @param string $slug
+     * @param string $content
+     * @return static
+     */
+    protected static function createNewPost(string $slug, string $content): static
+    {
+        try {
+            $aiService = app(BlogAIService::class);
+            $enhanced = $aiService->enhancePost($content)->toArray();
+
+            return static::create([
+                'title' => $enhanced['title'],
+                'slug' => $slug,
+                'content' => $enhanced['enhanced_content'],
+                'author' => config('blog.author', 'Stu Mason'),
+                'category' => $enhanced['category'],
+                'excerpt' => $enhanced['excerpt'],
+                'reading_time' => static::calculateReadingTime($enhanced['enhanced_content']),
+                'ai_processed' => true,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('AI processing failed for new post, creating with defaults', [
+                'slug' => $slug,
+                'error' => $e->getMessage()
+            ]);
+
+            // Fallback to creating post without AI enhancement
+            return static::create([
+                'title' => Str::title(str_replace('-', ' ', $slug)),
+                'slug' => $slug,
+                'content' => $content,
+                'author' => config('blog.author', 'Stu Mason'),
+                'category' => 'Uncategorized',
+                'excerpt' => Str::limit(strip_tags($content), 150),
+                'reading_time' => static::calculateReadingTime($content),
+                'ai_processed' => false,
+            ]);
+        }
+    }
+
+    /**
+     * Calculate reading time in minutes
+     *
+     * @param string $content
+     * @return int
+     */
+    protected static function calculateReadingTime(string $content): int
+    {
+        return max(1, ceil(str_word_count(strip_tags($content)) / 200));
+    }
+
+    /**
+     * Get rendered HTML content
+     *
+     * @return string
+     */
+    public function getRenderedContentAttribute(): string
     {
         return app(MarkdownRenderer::class)->toHtml($this->content);
     }
